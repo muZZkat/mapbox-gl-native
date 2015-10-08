@@ -2,14 +2,14 @@ package com.mapbox.mapboxsdk.annotations;
 
 import com.mapbox.mapboxsdk.geometry.LatLng;
 
-public class PolylineOptions extends MultiPointOptions {
+public final class PolylineOptions extends MultiPointOptions {
 
     public PolylineOptions() {
         annotation = new Polyline();
     }
 
     public PolylineOptions add(LatLng point) {
-        ((MultiPoint)annotation).points.add(point);
+        ((MultiPoint) annotation).addPoint(point);
         return this;
     }
 
@@ -33,26 +33,29 @@ public class PolylineOptions extends MultiPointOptions {
      * @param color - the color in ARGB format
      */
     public PolylineOptions color(int color) {
-        ((Polyline)annotation).color = color;
+        ((Polyline) annotation).setColor(color);
         return this;
     }
 
     public int getColor() {
-        return ((Polyline)annotation).color;
+        return ((Polyline) annotation).getColor();
     }
 
+    /**
+     * Do not use this method. Used internally by the SDK.
+     */
     public Polyline getPolyline() {
-        return ((Polyline)annotation);
+        return ((Polyline) annotation);
     }
 
     public float getWidth() {
-        return ((Polyline)annotation).width;
+        return ((Polyline) annotation).getWidth();
     }
 
-    public PolylineOptions visible(boolean visible) {
-        annotation.visible = visible;
+    /*public PolylineOptions visible(boolean visible) {
+        annotation.setVisible(visible);
         return this;
-    }
+    }*/
 
     /**
      * Sets the width of the polyline.
@@ -61,13 +64,33 @@ public class PolylineOptions extends MultiPointOptions {
      * @return a new PolylineOptions
      */
     public PolylineOptions width(float width) {
-        ((Polyline)annotation).width = width;
+        ((Polyline) annotation).setWidth(width);
         return this;
     }
 
-    // TODO: Implement writeToParcel of Google Maps Android API
-//    public void writeToParcel(Parcel out, int flags) {
-//
-//    }
+    public PolylineOptions alpha(float alpha) {
+        ((MultiPoint) annotation).setAlpha(alpha);
+        return this;
+    }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+
+        PolylineOptions polyline = (PolylineOptions) o;
+
+        if (getColor() != polyline.getColor()) return false;
+        return Float.compare(polyline.getWidth(), getWidth()) == 0;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + getColor();
+        result = 31 * result + (getWidth() != +0.0f ? Float.floatToIntBits(getWidth()) : 0);
+        return result;
+    }
 }

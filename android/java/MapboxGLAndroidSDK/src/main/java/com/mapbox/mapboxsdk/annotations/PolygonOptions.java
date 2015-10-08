@@ -6,14 +6,14 @@ import com.mapbox.mapboxsdk.geometry.LatLng;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PolygonOptions extends MultiPointOptions {
+public final class PolygonOptions extends MultiPointOptions {
 
     public PolygonOptions() {
         annotation = new Polygon();
     }
 
     public PolygonOptions add(LatLng point) {
-        ((MultiPoint)annotation).points.add(point);
+        ((MultiPoint) annotation).addPoint(point);
         return this;
     }
 
@@ -32,62 +32,29 @@ public class PolygonOptions extends MultiPointOptions {
     }
 
     /**
-     * UNIMPLEMENTED: Needs implementation in Native.
-     * https://github.com/mapbox/mapbox-gl-native/issues/1729
-     *
-     * @param points - an iterable (list) of points for cutting a hole
-     * @return PolygonOptions - the options object
-     */
-    public PolygonOptions addHole (Iterable<LatLng> points) {
-        List<LatLng> hole = new ArrayList<>();
-        for (LatLng point : points) {
-            hole.add(point);
-        }
-        ((Polygon)annotation).holes.add(hole);
-        return this;
-    }
-
-    /**
      * Sets the color of the polygon.
      *
      * @param color - the color in ARGB format
      * @return PolygonOptions - the options object
      */
     public PolygonOptions fillColor(int color) {
-        ((Polygon)annotation).fillColor = color;
+        ((Polygon) annotation).setFillColor(color);
         return this;
     }
 
     public int getFillColor() {
-        return ((Polygon)annotation).fillColor;
+        return ((Polygon) annotation).getFillColor();
     }
 
     /**
-     * UNIMPLEMENTED: Needs implementation in Native.
-     * https://github.com/mapbox/mapbox-gl-native/issues/1729
-     *
-     * @return a list of lists of points for cutting holes
+     * Do not use this method. Used internally by the SDK.
      */
-    public List<List<LatLng>> getHoles() {
-        return ((Polygon)annotation).holes;
-    }
-
     public Polygon getPolygon() {
-        return ((Polygon)annotation);
+        return ((Polygon) annotation);
     }
 
     public int getStrokeColor() {
-        return ((Polygon)annotation).strokeColor;
-    }
-
-    /**
-     * UNIMPLEMENTED: Needs implementation in Native.
-     * https://github.com/mapbox/mapbox-gl-native/issues/1737
-     *
-     * @return stroke width as float
-     */
-    public float getStrokeWidth() {
-        return ((Polygon)annotation).strokeWidth;
+        return ((Polygon) annotation).getStrokeColor();
     }
 
     /**
@@ -97,29 +64,39 @@ public class PolygonOptions extends MultiPointOptions {
      * @return PolygonOptions - the options object
      */
     public PolygonOptions strokeColor(int color) {
-        ((Polygon)annotation).strokeColor = color;
+        ((Polygon) annotation).setStrokeColor(color);
         return this;
     }
 
-    /**
-     * UNIMPLEMENTED: Needs implementation in Native.
-     * https://github.com/mapbox/mapbox-gl-native/issues/1737
-     *
-     * @return stroke width as float
-     */
-    public PolygonOptions strokeWidth(float width) {
-        ((Polygon)annotation).strokeWidth = width;
+    /*public PolygonOptions visible(boolean visible) {
+        annotation.setVisible(visible);
+        return this;
+    }*/
+
+    public PolygonOptions alpha(float alpha) {
+        ((MultiPoint) annotation).setAlpha(alpha);
         return this;
     }
 
-    public PolygonOptions visible(boolean visible) {
-        annotation.visible = visible;
-        return this;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+
+        PolygonOptions polygon = (PolygonOptions) o;
+
+        if (getFillColor() != polygon.getFillColor()) return false;
+        return getStrokeColor() == polygon.getStrokeColor();
+
     }
 
-    // TODO: Implement writeToParcel of Google Maps Android API
-//    public void writeToParcel(Parcel out, int flags) {
-//
-//    }
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + getFillColor();
+        result = 31 * result + getStrokeColor();
+        return result;
+    }
 
 }

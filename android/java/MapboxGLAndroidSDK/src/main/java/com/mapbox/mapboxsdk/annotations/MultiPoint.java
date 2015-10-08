@@ -7,9 +7,10 @@ import java.util.List;
 
 public abstract class MultiPoint extends Annotation {
 
-    List<LatLng> points;
+    private List<LatLng> points;
+    private float alpha = 1.0f;
 
-    public MultiPoint() {
+    protected MultiPoint() {
         super();
         points = new ArrayList<>();
     }
@@ -34,20 +35,15 @@ public abstract class MultiPoint extends Annotation {
         this.points = new ArrayList<>(points);
     }
 
+    void addPoint(LatLng point) {
+        points.add(point);
+    }
 
-    // TODO: Implement hashCode of Google Maps Android API
-//    public int hashCode() {
-//
-//    }
+    public float getAlpha() {
+        return alpha;
+    }
 
-    // TODO: Implement isGeodesic of Google Maps Android API
-//    public boolean isGeodesic() {
-//
-//    }
-
-    // TODO: Implement setGeodesic of Google Maps Android API
-//    public void setGeodesic(boolean geodesic) {
-//
-//    }
-
+    void setAlpha(float alpha) {
+        this.alpha = alpha;
+    }
 }

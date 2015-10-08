@@ -6,73 +6,48 @@ public abstract class Annotation implements Comparable<Annotation> {
 
     /**
      * The annotation id
-     *
+     * <p/>
      * Internal C++ id is stored as unsigned int.
      */
     protected long id = -1; // -1 unless added to a MapView
     protected MapView mapView;
 
-    float alpha = 1.0f;
-    boolean visible = true;
+    // TODO: Not acutally implemented!
+    //private boolean visible = true;
 
-    public Annotation() {}
-
-    public float getAlpha() {
-        return alpha;
+    protected Annotation() {
     }
 
     public long getId() {
         return id;
     }
 
-    public boolean isVisible() {
+    /*public boolean isVisible() {
         return visible;
-    }
+    }*/
 
     public void remove() {
         if (mapView == null) return;
         mapView.removeAnnotation(this);
     }
 
-    public void setAlpha(float alpha) {
-        this.alpha = alpha;
-    }
-
+    /**
+     * Do not use this method. Used internally by the SDK.
+     */
     public void setId(long id) {
         this.id = id;
     }
 
+    /**
+     * Do not use this method. Used internally by the SDK.
+     */
     public void setMapView(MapView mapView) {
         this.mapView = mapView;
     }
 
-    public void setVisible(boolean visible) {
+    /*void setVisible(boolean visible) {
         this.visible = visible;
-    }
-
-    // TODO: Implement getZIndex of Google Maps Android API
-//    public float getZIndex() {
-//
-//    }
-
-    // TODO: Implement setZIndex of Google Maps Android API
-//    public void setZIndex(float zIndex) {
-//
-//    }
-
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null) {
-            return false;
-        }
-
-        if (o instanceof Annotation) {
-            Annotation comp = (Annotation) o;
-            return id == comp.id;
-        }
-        return false;
-    }
+    }*/
 
     @Override
     public int compareTo(Annotation annotation) {
@@ -89,5 +64,20 @@ public abstract class Annotation implements Comparable<Annotation> {
 
         // Equal
         return 0;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Annotation that = (Annotation) o;
+
+        return getId() == that.getId();
+    }
+
+    @Override
+    public int hashCode() {
+        return (int) (getId() ^ (getId() >>> 32));
     }
 }

@@ -4,19 +4,27 @@ public abstract class AnnotationOptions {
 
     protected Annotation annotation;
 
-    public AnnotationOptions() {}
-
-    public AnnotationOptions alpha(float alpha) {
-        annotation.alpha = alpha;
-        return this;
+    protected AnnotationOptions() {
     }
 
-    public float getAlpha() {
-        return annotation.alpha;
+    /*public boolean isVisible() {
+        return annotation.isVisible();
+    }*/
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        AnnotationOptions that = (AnnotationOptions) o;
+
+        //return isVisible() == that.isVisible();
+        return true;
     }
 
-    public boolean isVisible() {
-        return annotation.visible;
+    @Override
+    public int hashCode() {
+        //return (isVisible() ? 1 : 0);
+        return 0;
     }
-
 }
