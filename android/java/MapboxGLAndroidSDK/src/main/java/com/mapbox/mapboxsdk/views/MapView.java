@@ -1,5 +1,7 @@
 package com.mapbox.mapboxsdk.views;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.Dialog;
@@ -741,7 +743,7 @@ public final class MapView extends FrameLayout {
                     , typedArray.getDimension(R.styleable.MapView_compassMarginBottom, DIMENSION_TEN_DP));
 
             // Logo
-            setLogoVisibility(typedArray.getInt(R.styleable.MapView_logoVisibility, VISIBLE));
+            setLogoVisibility(typedArray.getInt(R.styleable.MapView_logoVisibility, View.VISIBLE));
             setLogoGravity(typedArray.getInt(R.styleable.MapView_logoGravity, Gravity.BOTTOM | Gravity.START));
             setWidgetMargins(mLogoView, typedArray.getDimension(R.styleable.MapView_logoMarginLeft, DIMENSION_SIXTEEN_DP)
                     , typedArray.getDimension(R.styleable.MapView_logoMarginTop, DIMENSION_SIXTEEN_DP)
@@ -749,7 +751,7 @@ public final class MapView extends FrameLayout {
                     , typedArray.getDimension(R.styleable.MapView_logoMarginBottom, DIMENSION_SIXTEEN_DP));
 
             // Attribution
-            setAttributionVisibility(typedArray.getInt(R.styleable.MapView_attributionVisibility, VISIBLE));
+            setAttributionVisibility(typedArray.getInt(R.styleable.MapView_attributionVisibility, View.VISIBLE));
             setAttributionGravity(typedArray.getInt(R.styleable.MapView_attributionGravity, Gravity.BOTTOM));
             setWidgetMargins(mAttributionsView, typedArray.getDimension(R.styleable.MapView_attributionMarginLeft, DIMENSION_SEVENTYSIX_DP)
                     , typedArray.getDimension(R.styleable.MapView_attributionMarginTop, DIMENSION_SEVEN_DP)
@@ -3063,14 +3065,75 @@ public final class MapView extends FrameLayout {
         imageView.setScaleType(ImageView.ScaleType.MATRIX);
     }
 
+    private boolean mCompassHiding = false;
+    private boolean mCompassShowing = false;
+
     // Updates the UI to match the current map's position
     private void updateCompass() {
         if (isCompassEnabled()) {
-            mCompassView.setVisibility(VISIBLE);
-            rotateImageView(mCompassView, (float) getDirection());
+            float direction = (float) getDirection();
+            rotateImageView(mCompassView, direction);
+            if (direction == 0.0f) {
+                if (!mCompassHiding && (mCompassView.getVisibility() == View.VISIBLE)) {
+                    hideCompass();
+                }
+            } else {
+                if (!mCompassShowing && (mCompassView.getVisibility() == View.INVISIBLE)) {
+                    showCompass();
+                }
+            }
         } else {
-            mCompassView.setVisibility(INVISIBLE);
+            mCompassView.clearAnimation();
+            mCompassView.setVisibility(View.INVISIBLE);
         }
+    }
+
+    private void hideCompass() {
+        mCompassView.clearAnimation();
+        mCompassView.animate()
+                .alpha(0.0f)
+                .setDuration(getResources().getInteger(android.R.integer.config_shortAnimTime))
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationStart(Animator animation) {
+                        mCompassHiding = true;
+                    }
+
+                    @Override
+                    public void onAnimationCancel(Animator animation) {
+                        mCompassHiding = false;
+                    }
+
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        mCompassHiding = false;
+                        mCompassView.setVisibility(View.INVISIBLE);
+                    }
+                });
+    }
+
+    private void showCompass() {
+        mCompassView.clearAnimation();
+        mCompassView.animate()
+                .alpha(1.0f)
+                .setDuration(getResources().getInteger(android.R.integer.config_shortAnimTime))
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationStart(Animator animation) {
+                        mCompassShowing = true;
+                    }
+
+                    @Override
+                    public void onAnimationCancel(Animator animation) {
+                        mCompassShowing = false;
+                    }
+
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        mCompassShowing = false;
+                        mCompassView.setVisibility(View.VISIBLE);
+                    }
+                });
     }
 
     private class CompassDelegate implements CompassView.CompassDelegate {
