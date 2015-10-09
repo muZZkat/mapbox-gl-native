@@ -150,7 +150,6 @@ Currently, until [#1437](https://github.com/mapbox/mapbox-gl-native/issues/1437)
 
 1. Add the following Cocoa framework dependencies to your target's *Link Binary With Libraries* build phase:
 
-   - `CoreTelephony.framework`
    - `GLKit.framework`
    - `ImageIO.framework`
    - `MobileCoreServices.framework`
