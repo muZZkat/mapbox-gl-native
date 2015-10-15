@@ -124,6 +124,7 @@ Source::Source() {}
 Source::~Source() {
     if (req) {
         util::ThreadContext::getFileSource()->cancel(req);
+        req = nullptr;
     }
 }
 
@@ -152,6 +153,7 @@ void Source::load() {
 
     FileSource* fs = util::ThreadContext::getFileSource();
     req = fs->request({ Resource::Kind::Source, info.url }, util::RunLoop::getLoop(), [this](const Response &res) {
+        util::ThreadContext::getFileSource()->cancel(req);
         req = nullptr;
 
         if (res.status != Response::Successful) {
