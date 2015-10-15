@@ -121,12 +121,7 @@ std::string SourceInfo::tileURL(const TileID& id, float pixelRatio) const {
 
 Source::Source() {}
 
-Source::~Source() {
-    if (req) {
-        util::ThreadContext::getFileSource()->cancel(req);
-        req = nullptr;
-    }
-}
+Source::~Source() = default;
 
 bool Source::isLoaded() const {
     if (!loaded) {
@@ -153,7 +148,6 @@ void Source::load() {
 
     FileSource* fs = util::ThreadContext::getFileSource();
     req = fs->request({ Resource::Kind::Source, info.url }, util::RunLoop::getLoop(), [this](const Response &res) {
-        util::ThreadContext::getFileSource()->cancel(req);
         req = nullptr;
 
         if (res.status != Response::Successful) {
