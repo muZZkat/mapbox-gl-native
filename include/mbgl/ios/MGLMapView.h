@@ -20,7 +20,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /** An MGLMapView object provides an embeddable map interface, similar to the one provided by Apple's MapKit. You use this class to display map information and to manipulate the map contents from your application. You can center the map on a given coordinate, specify the size of the area you want to display, and style the features of the map to fit your application's use case.
 *
-*   Use of MGLMapView requires a Mapbox API access token. Obtain an access token on the [Mapbox account page](https://www.mapbox.com/account/apps/). If you instantiate an MGLMapView from Interface Builder, rendering of the map won't begin until the accessToken property has been set.
+*   Use of MGLMapView requires a Mapbox API access token. Obtain an access token on the [Mapbox account page](https://www.mapbox.com/studio/account/tokens/). If you instantiate an MGLMapView from Interface Builder, rendering of the map won't begin until the accessToken property has been set.
 *
 *   @warning Please note that you are responsible for getting permission to use the map data, and for ensuring your use adheres to the relevant terms of use. */
 IB_DESIGNABLE
@@ -134,6 +134,14 @@ IB_DESIGNABLE
 *   @param animated Specify `YES` if you want the map view to animate scrolling, zooming, and rotating to the new location or `NO` if you want the map to display the new location immediately. */
 - (void)setCenterCoordinate:(CLLocationCoordinate2D)centerCoordinate zoomLevel:(double)zoomLevel direction:(CLLocationDirection)direction animated:(BOOL)animated;
 
+/** Changes the center coordinate, zoom level, and direction of the map, calling a completion handler at the end of an optional animation.
+*   @param centerCoordinate The new center coordinate for the map.
+*   @param zoomLevel The new zoom level for the map.
+*   @param direction The new direction for the map, measured in degrees relative to true north.
+*   @param animated Specify `YES` if you want the map view to animate scrolling, zooming, and rotating to the new location or `NO` if you want the map to display the new location immediately.
+*   @param completion The block executed after the animation finishes. */
+- (void)setCenterCoordinate:(CLLocationCoordinate2D)centerCoordinate zoomLevel:(double)zoomLevel direction:(CLLocationDirection)direction animated:(BOOL)animated completionHandler:(nullable void (^)(void))completion;
+
 /** The coordinate bounds visible in the receiver’s viewport.
 *   
 *   Changing the value of this property updates the receiver immediately. If you want to animate the change, call `setVisibleCoordinateBounds:animated:` instead. */
@@ -156,6 +164,16 @@ IB_DESIGNABLE
 *   @param insets The minimum padding (in screen points) that will be visible around the given coordinate bounds.
 *   @param animated Specify `YES` to animate the change by smoothly scrolling and zooming or `NO` to immediately display the given bounds. */
 - (void)setVisibleCoordinates:(CLLocationCoordinate2D *)coordinates count:(NSUInteger)count edgePadding:(UIEdgeInsets)insets animated:(BOOL)animated;
+
+/** Changes the receiver’s viewport to fit all of the given coordinates and optionally some additional padding on each side.
+*   @param coordinates The coordinates that the viewport will show.
+*   @param count The number of coordinates. This number must not be greater than the number of elements in `coordinates`.
+*   @param insets The minimum padding (in screen points) that will be visible around the given coordinate bounds.
+*   @param direction The direction to rotate the map to, measured in degrees relative to true north.
+*   @param duration The duration to animate the change in seconds.
+*   @param function The timing function to animate the change.
+*   @param completion The block executed after the animation finishes. */
+- (void)setVisibleCoordinates:(CLLocationCoordinate2D *)coordinates count:(NSUInteger)count edgePadding:(UIEdgeInsets)insets direction:(CLLocationDirection)direction duration:(NSTimeInterval)duration animationTimingFunction:(nullable CAMediaTimingFunction *)function completionHandler:(nullable void (^)(void))completion;
 
 /** Sets the visible region so that the map displays the specified annotations.
 *
@@ -193,6 +211,40 @@ IB_DESIGNABLE
 *   @param function A timing function used for the animation. Set this parameter to `nil` for a transition that matches most system animations. If the duration is `0`, this parameter is ignored. */
 - (void)setCamera:(MGLMapCamera *)camera withDuration:(NSTimeInterval)duration animationTimingFunction:(nullable CAMediaTimingFunction *)function;
 
+/** Moves the viewpoint to a different location with respect to the map with an optional transition duration and timing function.
+*   @param camera The new viewpoint.
+*   @param duration The amount of time, measured in seconds, that the transition animation should take. Specify `0` to jump to the new viewpoint instantaneously.
+*   @param function A timing function used for the animation. Set this parameter to `nil` for a transition that matches most system animations. If the duration is `0`, this parameter is ignored.
+*   @param completion The block to execute after the animation finishes. */
+- (void)setCamera:(MGLMapCamera *)camera withDuration:(NSTimeInterval)duration animationTimingFunction:(nullable CAMediaTimingFunction *)function completionHandler:(nullable void (^)(void))completion;
+
+/** Moves the viewpoint to a different location using a transition animation that evokes powered flight and a default duration based on the length of the flight path.
+*
+*   The transition animation seamlessly incorporates zooming and panning to help the user find his or her bearings even after traversing a great distance.
+*
+*   @param camera The new viewpoint.
+*   @param completion The block to execute after the animation finishes. */
+- (void)flyToCamera:(MGLMapCamera *)camera completionHandler:(nullable void (^)(void))completion;
+
+/** Moves the viewpoint to a different location using a transition animation that evokes powered flight and an optional transition duration.
+*
+*   The transition animation seamlessly incorporates zooming and panning to help the user find his or her bearings even after traversing a great distance.
+*
+*   @param camera The new viewpoint.
+*   @param duration The amount of time, measured in seconds, that the transition animation should take. Specify `0` to jump to the new viewpoint instantaneously. Specify a negative value to use the default duration, which is based on the length of the flight path.
+*   @param completion The block to execute after the animation finishes. */
+- (void)flyToCamera:(MGLMapCamera *)camera withDuration:(NSTimeInterval)duration completionHandler:(nullable void (^)(void))completion;
+
+/** Moves the viewpoint to a different location using a transition animation that evokes powered flight and an optional transition duration and peak altitude.
+*
+*   The transition animation seamlessly incorporates zooming and panning to help the user find his or her bearings even after traversing a great distance.
+*
+*   @param camera The new viewpoint.
+*   @param duration The amount of time, measured in seconds, that the transition animation should take. Specify `0` to jump to the new viewpoint instantaneously. Specify a negative value to use the default duration, which is based on the length of the flight path.
+*   @param peakAltitude The altitude, measured in meters, at the midpoint of the animation. The value of this parameter is ignored if it is negative or if the animation transition resulting from a similar call to `-setCamera:animated:` would have a midpoint at a higher altitude.
+*   @param completion The block to execute after the animation finishes. */
+- (void)flyToCamera:(MGLMapCamera *)camera withDuration:(NSTimeInterval)duration peakAltitude:(CLLocationDistance)peakAltitude completionHandler:(nullable void (^)(void))completion;
+
 #pragma mark - Converting Map Coordinates
 
 /** @name Converting Map Coordinates */
@@ -209,13 +261,15 @@ IB_DESIGNABLE
 *   @return The point (in the appropriate view or window coordinate system) corresponding to the specified latitude and longitude value. */
 - (CGPoint)convertCoordinate:(CLLocationCoordinate2D)coordinate toPointToView:(nullable UIView *)view;
 
-/** Returns the distance spanned by one pixel at the specified latitude and current zoom level.
+/** Returns the distance spanned by one point in the map view’s coordinate system at the given latitude and current zoom level.
 *
-*   The distance between pixels decreases as the latitude approaches the poles. This relationship parallels the relationship between longitudinal coordinates at different latitudes.
+*   The distance between points decreases as the latitude approaches the poles. This relationship parallels the relationship between longitudinal coordinates at different latitudes.
 *
-*   @param latitude The latitude for which to return the value.
-*   @return The distance (in meters) spanned by a single pixel. */
-- (CLLocationDistance)metersPerPixelAtLatitude:(CLLocationDegrees)latitude;
+*   @param latitude The latitude of the geographic coordinate represented by the point.
+*   @return The distance in meters spanned by a single point. */
+- (CLLocationDistance)metersPerPointAtLatitude:(CLLocationDegrees)latitude;
+
+- (CLLocationDistance)metersPerPixelAtLatitude:(CLLocationDegrees)latitude __attribute__((deprecated("Call -metersPerPointAtLatitude: instead.")));
 
 #pragma mark - Styling the Map
 
@@ -233,9 +287,6 @@ IB_DESIGNABLE
 *
 *   To display the default style, set this property to `nil`. */
 @property (nonatomic, null_resettable) NSURL *styleURL;
-
-/* Discourage programmatic usage of this IB-only property. Interface Builder skips over this declaration because it is unable to parse attributes. See the real declaration in MGLMapView+IBAdditions.h. */
-@property (nonatomic, nullable) IBInspectable NSString *styleURL__ __attribute__((unavailable("styleURL__ is for use within Interface Builder only. Use styleURL in code.")));
 
 /** Currently active style classes, represented as an array of string identifiers. */
 @property (nonatomic) NS_ARRAY_OF(NSString *) *styleClasses;
@@ -380,8 +431,8 @@ IB_DESIGNABLE
 *   The default value of this property is `NO`. */
 @property (nonatomic, getter=isDebugActive) BOOL debugActive;
 
-/** Toggle the current value of debugActive. */
-- (void)toggleDebug;
+/** Cycle map debug options. */
+- (void)cycleDebugOptions;
 
 /** Empties the in-memory tile cache. */
 - (void)emptyMemoryCache;

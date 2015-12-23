@@ -7,6 +7,8 @@
 #include <mbgl/map/map_data.hpp>
 #include <mbgl/annotation/point_annotation.hpp>
 #include <mbgl/annotation/shape_annotation.hpp>
+#include <mbgl/style/style_layer.hpp>
+#include <mbgl/layer/custom_layer.hpp>
 
 #include <mbgl/util/projection.hpp>
 #include <mbgl/util/thread.hpp>
@@ -17,8 +19,10 @@ namespace mbgl {
 Map::Map(View& view_, FileSource& fileSource, MapMode mapMode, GLContextMode contextMode, ConstrainMode constrainMode)
     : view(view_),
       transform(std::make_unique<Transform>(view, constrainMode)),
-      data(std::make_unique<MapData>(mapMode, contextMode, view.getPixelRatio())),
-      context(std::make_unique<util::Thread<MapContext>>(util::ThreadContext{"Map", util::ThreadType::Map, util::ThreadPriority::Regular}, view, fileSource, *data))
+      context(std::make_unique<util::Thread<MapContext>>(
+        util::ThreadContext{"Map", util::ThreadType::Map, util::ThreadPriority::Regular},
+        view, fileSource, mapMode, contextMode, view.getPixelRatio())),
+      data(&context->invokeSync<MapData&>(&MapContext::getData))
 {
     view.initialize(this);
     update(Update::Dimensions);
@@ -151,6 +155,12 @@ void Map::jumpTo(const CameraOptions& options) {
 
 void Map::easeTo(const CameraOptions& options) {
     transform->easeTo(options);
+    update(options.zoom ? Update::Zoom : Update::Repaint);
+}
+    
+    
+void Map::flyTo(const CameraOptions& options) {
+    transform->flyTo(options);
     update(options.zoom ? Update::Zoom : Update::Repaint);
 }
 
@@ -324,12 +334,24 @@ void Map::resetNorth(const Duration& duration) {
 #pragma mark - Pitch
 
 void Map::setPitch(double pitch, const Duration& duration) {
-    transform->setPitch(util::clamp(pitch, 0., 60.) * M_PI / 180, duration);
+    transform->setPitch(pitch * M_PI / 180, duration);
     update(Update::Repaint);
 }
 
 double Map::getPitch() const {
     return transform->getPitch() / M_PI * 180;
+}
+
+
+#pragma mark - North Orientation
+
+void Map::setNorthOrientation(NorthOrientation orientation) {
+    transform->setNorthOrientation(orientation);
+    update(Update::Repaint);
+}
+
+NorthOrientation Map::getNorthOrientation() const {
+    return transform->getNorthOrientation();
 }
 
 
@@ -365,8 +387,16 @@ LatLng Map::latLngForPixel(const PrecisionPoint& pixel) const {
 
 #pragma mark - Annotations
 
-double Map::getTopOffsetPixelsForAnnotationSymbol(const std::string& symbol) {
-    return context->invokeSync<double>(&MapContext::getTopOffsetPixelsForAnnotationSymbol, symbol);
+void Map::addAnnotationIcon(const std::string& name, std::shared_ptr<const SpriteImage> sprite) {
+    context->invoke(&MapContext::addAnnotationIcon, name, sprite);
+}
+
+void Map::removeAnnotationIcon(const std::string& name) {
+    context->invoke(&MapContext::removeAnnotationIcon, name);
+}
+
+double Map::getTopOffsetPixelsForAnnotationIcon(const std::string& symbol) {
+    return context->invokeSync<double>(&MapContext::getTopOffsetPixelsForAnnotationIcon, symbol);
 }
 
 AnnotationID Map::addPointAnnotation(const PointAnnotation& annotation) {
@@ -405,47 +435,38 @@ AnnotationIDs Map::getPointAnnotationsInBounds(const LatLngBounds& bounds) {
 LatLngBounds Map::getBoundsForAnnotations(const AnnotationIDs& annotations) {
     return data->getAnnotationManager()->getBoundsForAnnotations(annotations);
 }
+    
+#pragma mark - Style API
 
-
-#pragma mark - Sprites
-
-void Map::setSprite(const std::string& name, std::shared_ptr<const SpriteImage> sprite) {
-    context->invoke(&MapContext::setSprite, name, sprite);
+void Map::addCustomLayer(const std::string& id,
+                         CustomLayerInitializeFunction initialize,
+                         CustomLayerRenderFunction render,
+                         CustomLayerDeinitializeFunction deinitialize,
+                         void* context_,
+                         const char* before) {
+    context->invoke(&MapContext::addLayer,
+        std::make_unique<CustomLayer>(id, initialize, render, deinitialize, context_),
+        before ? std::string(before) : mapbox::util::optional<std::string>());
 }
 
-void Map::removeSprite(const std::string& name) {
-    setSprite(name, nullptr);
+void Map::removeCustomLayer(const std::string& id) {
+    context->invoke(&MapContext::removeLayer, id);
 }
-
 
 #pragma mark - Toggles
 
-void Map::setDebug(bool value) {
-    data->setDebug(value);
+void Map::setDebug(MapDebugOptions mode) {
+    data->setDebug(mode);
     update(Update::Repaint);
 }
 
-void Map::toggleDebug() {
-    data->toggleDebug();
+void Map::cycleDebugOptions() {
+    data->cycleDebugOptions();
     update(Update::Repaint);
 }
 
-bool Map::getDebug() const {
+MapDebugOptions Map::getDebug() const {
     return data->getDebug();
-}
-
-void Map::setCollisionDebug(bool value) {
-    data->setCollisionDebug(value);
-    update(Update::Repaint);
-}
-
-void Map::toggleCollisionDebug() {
-    data->toggleCollisionDebug();
-    update(Update::Repaint);
-}
-
-bool Map::getCollisionDebug() const {
-    return data->getCollisionDebug();
 }
 
 bool Map::isFullyLoaded() const {
@@ -516,4 +537,4 @@ void Map::dumpDebugLogs() const {
     context->invokeSync(&MapContext::dumpDebugLogs);
 }
 
-}
+} // namespace mbgl

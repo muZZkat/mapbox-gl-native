@@ -5,13 +5,10 @@
 namespace mbgl {
 
 std::unique_ptr<StyleLayer> CircleLayer::clone() const {
-    std::unique_ptr<CircleLayer> result = std::make_unique<CircleLayer>();
-    result->copy(*this);
-    result->paint = paint;
-    return std::move(result);
+    return std::make_unique<CircleLayer>(*this);
 }
 
-void CircleLayer::parsePaints(const JSVal& layer) {
+void CircleLayer::parsePaints(const JSValue& layer) {
     paint.radius.parse("circle-radius", layer);
     paint.color.parse("circle-color", layer);
     paint.opacity.parse("circle-opacity", layer);
@@ -54,4 +51,4 @@ std::unique_ptr<Bucket> CircleLayer::createBucket(StyleBucketParameters& paramet
     return std::move(bucket);
 }
 
-}
+} // namespace mbgl

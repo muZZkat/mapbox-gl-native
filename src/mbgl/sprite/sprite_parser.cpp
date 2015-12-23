@@ -4,9 +4,7 @@
 #include <mbgl/platform/log.hpp>
 
 #include <mbgl/util/image.hpp>
-
-#include <rapidjson/document.h>
-#include <rapidjson/error/en.h>
+#include <mbgl/util/rapidjson.hpp>
 
 #include <cmath>
 #include <limits>
@@ -14,7 +12,7 @@
 
 namespace mbgl {
 
-SpriteImagePtr createSpriteImage(const util::Image& image,
+SpriteImagePtr createSpriteImage(const PremultipliedImage& image,
                                  const uint16_t srcX,
                                  const uint16_t srcY,
                                  const uint16_t srcWidth,
@@ -37,18 +35,18 @@ SpriteImagePtr createSpriteImage(const util::Image& image,
 
     std::string data(dstWidth * dstHeight * 4, '\0');
 
-    auto srcData = reinterpret_cast<const uint32_t*>(image.getData());
+    auto srcData = reinterpret_cast<const uint32_t*>(image.data.get());
     auto dstData = reinterpret_cast<uint32_t*>(const_cast<char*>(data.data()));
 
-    const int32_t maxX = std::min(image.getWidth(), uint32_t(srcWidth + srcX)) - srcX;
-    assert(maxX <= int32_t(image.getWidth()));
-    const int32_t maxY = std::min(image.getHeight(), uint32_t(srcHeight + srcY)) - srcY;
-    assert(maxY <= int32_t(image.getHeight()));
+    const int32_t maxX = std::min(uint32_t(image.width), uint32_t(srcWidth + srcX)) - srcX;
+    assert(maxX <= int32_t(image.width));
+    const int32_t maxY = std::min(uint32_t(image.height), uint32_t(srcHeight + srcY)) - srcY;
+    assert(maxY <= int32_t(image.height));
 
     // Copy from the source image into our individual sprite image
     for (uint16_t y = 0; y < maxY; ++y) {
         const auto dstRow = y * dstWidth;
-        const auto srcRow = (y + srcY) * image.getWidth() + srcX;
+        const auto srcRow = (y + srcY) * image.width + srcX;
         for (uint16_t x = 0; x < maxX; ++x) {
             dstData[dstRow + x] = srcData[srcRow + x];
         }
@@ -59,7 +57,7 @@ SpriteImagePtr createSpriteImage(const util::Image& image,
 
 namespace {
 
-inline uint16_t getUInt16(const rapidjson::Value& value, const char* name, const uint16_t def = 0) {
+inline uint16_t getUInt16(const JSValue& value, const char* name, const uint16_t def = 0) {
     if (value.HasMember(name)) {
         auto& v = value[name];
         if (v.IsUint() && v.GetUint() <= std::numeric_limits<uint16_t>::max()) {
@@ -73,7 +71,7 @@ inline uint16_t getUInt16(const rapidjson::Value& value, const char* name, const
     return def;
 }
 
-inline double getDouble(const rapidjson::Value& value, const char* name, const double def = 0) {
+inline double getDouble(const JSValue& value, const char* name, const double def = 0) {
     if (value.HasMember(name)) {
         auto& v = value[name];
         if (v.IsNumber()) {
@@ -86,7 +84,7 @@ inline double getDouble(const rapidjson::Value& value, const char* name, const d
     return def;
 }
 
-inline bool getBoolean(const rapidjson::Value& value, const char* name, const bool def = false) {
+inline bool getBoolean(const JSValue& value, const char* name, const bool def = false) {
     if (value.HasMember(name)) {
         auto& v = value[name];
         if (v.IsBool()) {
@@ -102,17 +100,16 @@ inline bool getBoolean(const rapidjson::Value& value, const char* name, const bo
 } // namespace
 
 SpriteParseResult parseSprite(const std::string& image, const std::string& json) {
-    using namespace rapidjson;
-
     Sprites sprites;
+    PremultipliedImage raster;
 
-    // Parse the sprite image.
-    const util::Image raster(image);
-    if (!raster) {
+    try {
+        raster = decodeImage(image);
+    } catch (...) {
         return std::string("Could not parse sprite image");
     }
 
-    Document doc;
+    JSDocument doc;
     doc.Parse<0>(json.c_str());
 
     if (doc.HasParseError()) {
@@ -122,9 +119,9 @@ SpriteParseResult parseSprite(const std::string& image, const std::string& json)
     } else if (!doc.IsObject()) {
         return std::string("Sprite JSON root must be an object");
     } else {
-        for (Value::ConstMemberIterator itr = doc.MemberBegin(); itr != doc.MemberEnd(); ++itr) {
+        for (JSValue::ConstMemberIterator itr = doc.MemberBegin(); itr != doc.MemberEnd(); ++itr) {
             const std::string name = { itr->name.GetString(), itr->name.GetStringLength() };
-            const Value& value = itr->value;
+            const JSValue& value = itr->value;
 
             if (value.IsObject()) {
                 const uint16_t x = getUInt16(value, "x", 0);

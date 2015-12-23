@@ -3,12 +3,12 @@ ifeq (,$(V))
 endif
 
 # Determine host platform
-HOST ?= $(BUILD)
+export HOST ?= $(BUILD)
 
 # Defines host defaults
-include scripts/$(HOST)/defaults.mk
+include platform/$(HOST)/scripts/defaults.mk
 
-HOST_VERSION ?= $(BUILD_VERSION)
+export HOST_VERSION ?= $(BUILD_VERSION)
 
 # Optionally include version-specific host defaults
 -include scripts/$(HOST)/$(HOST_VERSION)/defaults.mk
@@ -16,14 +16,14 @@ HOST_VERSION ?= $(BUILD_VERSION)
 export MASON_PLATFORM=$(HOST)
 export MASON_PLATFORM_VERSION=$(HOST_VERSION)
 
-ifneq (,$(wildcard scripts/$(HOST)/$(HOST_VERSION)/configure.sh))
+ifneq (,$(wildcard platform/$(HOST)/scripts/$(HOST_VERSION)/configure.sh))
 	CONFIGURE_FILES += scripts/$(HOST)/$(HOST_VERSION)/configure.sh
 endif
 
-HOST_SLUG = $(HOST)-$(HOST_VERSION)
-CONFIGURE_FILES = scripts/$(HOST)/configure.sh
-ifneq (,$(wildcard scripts/$(HOST)/$(HOST_VERSION)/configure.sh))
-	CONFIGURE_FILES += scripts/$(HOST)/$(HOST_VERSION)/configure.sh
+export HOST_SLUG = $(HOST)-$(HOST_VERSION)
+CONFIGURE_FILES = platform/$(HOST)/scripts/configure.sh
+ifneq (,$(wildcard platform/$(HOST)/scripts/$(HOST_VERSION)/configure.sh))
+	CONFIGURE_FILES += platform/$(HOST)/scripts/$(HOST_VERSION)/configure.sh
 endif
 
 ifneq (,$(findstring clang,$(CXX)))
@@ -65,6 +65,8 @@ config/%.gypi: $(SUBMODULES) configure $(CONFIGURE_FILES)
 	@printf "$(TEXT_BOLD)$(COLOR_GREEN)* Recreating project...$(FORMAT_END)\n"
 	$(QUIET)$(ENV) ./scripts/flock.py build/Configure.lock ./configure config/$*.gypi
 
+.PHONY: config
+config: config/$(HOST_SLUG).gypi
 
 #### Build files ###############################################################
 
@@ -73,7 +75,6 @@ GYP_FLAGS += -Iconfig/$(HOST_SLUG).gypi
 GYP_FLAGS += -Dplatform_lib=$(PLATFORM)
 GYP_FLAGS += -Dhttp_lib=$(HTTP)
 GYP_FLAGS += -Dasset_lib=$(ASSET)
-GYP_FLAGS += -Dcache_lib=$(CACHE)
 GYP_FLAGS += -Dheadless_lib=$(HEADLESS)
 GYP_FLAGS += -Dtest=$(BUILD_TEST)
 GYP_FLAGS += -Drender=$(BUILD_RENDER)
@@ -94,6 +95,12 @@ Xcode/__project__: print-env $(SUBMODULES) config/$(HOST_SLUG).gypi
 	$(QUIET)$(ENV) deps/run_gyp gyp/$(HOST).gyp $(GYP_FLAGS) \
 		-f xcode$(GYP_FLAVOR_SUFFIX)
 
+.PHONY: Ninja/__project__
+Ninja/__project__: print-env $(SUBMODULES) config/$(HOST_SLUG).gypi
+	@printf "$(TEXT_BOLD)$(COLOR_GREEN)* Recreating project...$(FORMAT_END)\n"
+	$(QUIET)$(ENV) deps/run_gyp gyp/$(HOST).gyp -Gconfig=$(BUILDTYPE) $(GYP_FLAGS) \
+		-f ninja
+
 #### Build individual targets ##################################################
 
 NODE_PRE_GYP = $(shell npm bin)/node-pre-gyp
@@ -101,11 +108,11 @@ node/configure:
 	$(QUIET)$(ENV) $(NODE_PRE_GYP) configure --clang -- \
 	$(GYP_FLAGS) -Dlibuv_cflags= -Dlibuv_ldflags= -Dlibuv_static_libs=
 
-node/xproj:
+node/xproj: Xcode/__project__ node/configure
 	$(QUIET)$(ENV) $(NODE_PRE_GYP) configure --clang -- \
 	$(GYP_FLAGS) -f xcode -Dlibuv_cflags= -Dlibuv_ldflags= -Dlibuv_static_libs=
-	$(QUIET)$(ENV) ./scripts/node/create_npm_scheme.sh test
-	$(QUIET)$(ENV) ./scripts/node/create_npm_scheme.sh run test-suite
+	$(QUIET)$(ENV) ./platform/node/scripts/create_node_scheme.sh "node test" "`npm bin tape`/tape platform/node/test/js/**/*.test.js"
+	$(QUIET)$(ENV) ./platform/node/scripts/create_node_scheme.sh "npm run test-suite" "platform/node/test/render.test.js"
 
 Makefile/node: Makefile/__project__ node/configure
 	@printf "$(TEXT_BOLD)$(COLOR_GREEN)* Building target node...$(FORMAT_END)\n"
@@ -123,8 +130,7 @@ Xcode/node: Xcode/__project__ node/xproj
 		-project ./build/binding.xcodeproj \
 		-configuration $(BUILDTYPE) \
 		-target mapbox-gl-native \
-		-jobs $(JOBS) \
-		$(XCPRETTY)
+		-jobs $(JOBS)
 
 Xcode/%: Xcode/__project__
 	@printf "$(TEXT_BOLD)$(COLOR_GREEN)* Building target $*...$(FORMAT_END)\n"
@@ -133,8 +139,26 @@ Xcode/%: Xcode/__project__
 		-project ./build/$(HOST_SLUG)/gyp/$(HOST).xcodeproj \
 		-configuration $(BUILDTYPE) \
 		-target $* \
-		-jobs $(JOBS) \
-		$(XCPRETTY)
+		-jobs $(JOBS)
+
+Ninja/%: Ninja/__project__
+	@printf "$(TEXT_BOLD)$(COLOR_GREEN)* Building target $*...$(FORMAT_END)\n"
+	$(QUIET)$(ENV) deps/ninja/ninja-$(HOST) -C build/$(HOST_SLUG)/$(BUILDTYPE) $*
+
+
+Ninja/compdb: OUTPUT=build/$(HOST_SLUG)/$(BUILDTYPE)/compile_commands.json
+Ninja/compdb: Ninja/__project__
+	@printf "$(TEXT_BOLD)$(COLOR_GREEN)* Writing to $(OUTPUT)$(FORMAT_END)\n"
+	$(QUIET)$(ENV) deps/ninja/ninja-$(HOST) -C build/$(HOST_SLUG)/$(BUILDTYPE) \
+		-t compdb cc cc_s cxx objc objcxx > $(OUTPUT)
+
+#### Tidy ######################################################################
+
+tidy: Ninja/compdb
+	@printf "$(TEXT_BOLD)$(COLOR_GREEN)* Generating header files...$(FORMAT_END)\n"
+	$(QUIET)$(ENV) deps/ninja/ninja-$(HOST) -C build/$(HOST_SLUG)/$(BUILDTYPE) version shaders
+	@printf "$(TEXT_BOLD)$(COLOR_GREEN)* Running tidy...$(FORMAT_END)\n"
+	@./scripts/clang-tidy.sh
 
 #### Run tests #################################################################
 
@@ -152,7 +176,7 @@ print-env: $(SUBMODULES)
 		@printf "platform=$(COLOR_CYAN)%s$(FORMAT_END)  " $(PLATFORM)
 		@printf "asset=$(COLOR_CYAN)%s$(FORMAT_END)  " $(ASSET)
 		@printf "http=$(COLOR_CYAN)%s$(FORMAT_END)  " $(HTTP)
-		@printf "cache=$(COLOR_CYAN)%s$(FORMAT_END)\n" $(CACHE)
+		@printf "\n"
 
 # Never remove intermediate files
 .SECONDARY:

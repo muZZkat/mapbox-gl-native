@@ -10,15 +10,22 @@
       ],
 
       'sources': [
+        '../platform/default/async_task.cpp',
         '../platform/default/log_stderr.cpp',
         '../platform/default/string_stdlib.cpp',
+        '../platform/default/run_loop.cpp',
         '../platform/default/application_root.cpp',
         '../platform/default/asset_root.cpp',
         '../platform/default/thread.cpp',
         '../platform/default/image.cpp',
-        '../platform/default/image_reader.cpp',
         '../platform/default/png_reader.cpp',
         '../platform/default/jpeg_reader.cpp',
+        '../platform/default/timer.cpp',
+        '../platform/default/default_file_source.cpp',
+        '../platform/default/online_file_source.cpp',
+        '../platform/default/sqlite_cache.cpp',
+        '../platform/default/sqlite3.hpp',
+        '../platform/default/sqlite3.cpp',
       ],
 
       'variables': {
@@ -28,18 +35,23 @@
           '<@(libuv_cflags)',
           '<@(nunicode_cflags)',
           '<@(boost_cflags)',
+          '<@(sqlite_cflags)',
         ],
         'ldflags': [
           '<@(libpng_ldflags)',
           '<@(jpeg_ldflags)',
           '<@(libuv_ldflags)',
           '<@(nunicode_ldflags)',
+          '<@(sqlite_ldflags)',
+          '<@(zlib_ldflags)',
         ],
         'libraries': [
           '<@(libpng_static_libs)',
           '<@(jpeg_static_libs)',
           '<@(libuv_static_libs)',
           '<@(nunicode_static_libs)',
+          '<@(sqlite_static_libs)',
+          '<@(zlib_static_libs)',
         ],
       },
 

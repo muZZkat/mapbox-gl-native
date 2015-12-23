@@ -20,11 +20,11 @@ void RasterBucket::render(Painter& painter,
                           const StyleLayer& layer,
                           const TileID& id,
                           const mat4& matrix) {
-    painter.renderRaster(*this, dynamic_cast<const RasterLayer&>(layer), id, matrix);
+    painter.renderRaster(*this, *layer.as<RasterLayer>(), id, matrix);
 }
 
-bool RasterBucket::setImage(std::unique_ptr<util::Image> image) {
-    return raster.load(std::move(image));
+void RasterBucket::setImage(PremultipliedImage image) {
+    raster.load(std::move(image));
 }
 
 void RasterBucket::drawRaster(RasterShader& shader, StaticVertexBuffer &vertices, VertexArrayObject &array) {

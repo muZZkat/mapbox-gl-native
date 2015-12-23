@@ -6,14 +6,10 @@
 namespace mbgl {
 
 std::unique_ptr<StyleLayer> SymbolLayer::clone() const {
-    std::unique_ptr<SymbolLayer> result = std::make_unique<SymbolLayer>();
-    result->copy(*this);
-    result->layout = layout;
-    result->paint = paint;
-    return std::move(result);
+    return std::make_unique<SymbolLayer>(*this);
 }
 
-void SymbolLayer::parseLayout(const JSVal& value) {
+void SymbolLayer::parseLayout(const JSValue& value) {
     layout.placement.parse("symbol-placement", value);
     layout.spacing.parse("symbol-spacing", value);
     layout.avoidEdges.parse("symbol-avoid-edges", value);
@@ -49,7 +45,7 @@ void SymbolLayer::parseLayout(const JSVal& value) {
     layout.text.optional.parse("text-optional", value);
 }
 
-void SymbolLayer::parsePaints(const JSVal& layer) {
+void SymbolLayer::parsePaints(const JSValue& layer) {
     paint.icon.opacity.parse("icon-opacity", layer);
     paint.icon.color.parse("icon-color", layer);
     paint.icon.haloColor.parse("icon-halo-color", layer);
@@ -178,7 +174,7 @@ std::unique_ptr<Bucket> SymbolLayer::createBucket(StyleBucketParameters& paramet
     // needed by this tile.
     if (!parameters.partialParse) {
         bucket->addFeatures(parameters.tileUID,
-                            parameters.spriteAtlas,
+                            *spriteAtlas,
                             parameters.glyphAtlas,
                             parameters.glyphStore,
                             parameters.collisionTile);
@@ -187,4 +183,4 @@ std::unique_ptr<Bucket> SymbolLayer::createBucket(StyleBucketParameters& paramet
     return std::move(bucket);
 }
 
-}
+} // namespace mbgl

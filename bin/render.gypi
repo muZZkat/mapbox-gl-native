@@ -13,7 +13,6 @@
         'mbgl.gyp:headless-<(headless_lib)',
         'mbgl.gyp:http-<(http_lib)',
         'mbgl.gyp:asset-<(asset_lib)',
-        'mbgl.gyp:cache-<(cache_lib)',
         'mbgl.gyp:copy_certificate_bundle',
       ],
 
@@ -28,16 +27,13 @@
       'variables' : {
         'cflags_cc': [
           '<@(glfw_cflags)',
-          '<@(libuv_cflags)',
           '<@(boost_cflags)',
         ],
         'ldflags': [
           '<@(glfw_ldflags)',
-          '<@(libuv_ldflags)',
         ],
         'libraries': [
           '<@(glfw_static_libs)',
-          '<@(libuv_static_libs)',
           '<@(boost_libprogram_options_static_libs)'
         ],
       },

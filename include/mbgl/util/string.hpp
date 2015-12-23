@@ -22,6 +22,15 @@ inline std::string toString(int8_t num) {
     return boost::lexical_cast<std::string>(int(num));
 }
 
+inline std::string toString(std::exception_ptr error) {
+    try {
+        std::rethrow_exception(error);
+    } catch (const std::exception& ex) {
+        return ex.what();
+    } catch (...) {
+        return "Unknown exception type";
+    }
+}
 
 template<size_t max, typename... Args>
 inline std::string sprintf(const char *msg, Args... args) {
@@ -35,7 +44,7 @@ inline std::string sprintf(const std::string &msg, Args... args) {
     return sprintf<max>(msg.c_str(), args...);
 }
 
-}
-}
+} // namespace util
+} // namespace mbgl
 
 #endif

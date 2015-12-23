@@ -2,7 +2,7 @@
 #define MBGL_STYLE_VALUE
 
 #include <mapbox/variant.hpp>
-#include <rapidjson/document.h>
+#include <mbgl/util/rapidjson.hpp>
 
 #include <cstdlib>
 #include <cerrno>
@@ -13,7 +13,7 @@ typedef mapbox::util::variant<bool, int64_t, uint64_t, double, std::string> Valu
 
 std::string toString(const Value &value);
 
-Value parseValue(const rapidjson::Value&);
+Value parseValue(const JSValue&);
 
 namespace util {
 inline bool parseNumericString(const std::string &str, double &result) {
@@ -23,7 +23,7 @@ inline bool parseNumericString(const std::string &str, double &result) {
     while (*end != '\0' && isspace(*end)) end++; // eat whitespace after the end
     return errno == 0 && end - begin == long(str.size());
 }
-}
+} // namespace util
 
 template <typename T>
 T toNumber(const Value &value) {
@@ -38,6 +38,6 @@ T toNumber(const Value &value) {
     else return 0;
 }
 
-}
+} // namespace mbgl
 
 #endif

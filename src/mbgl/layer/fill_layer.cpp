@@ -5,13 +5,10 @@
 namespace mbgl {
 
 std::unique_ptr<StyleLayer> FillLayer::clone() const {
-    std::unique_ptr<FillLayer> result = std::make_unique<FillLayer>();
-    result->copy(*this);
-    result->paint = paint;
-    return std::move(result);
+    return std::make_unique<FillLayer>(*this);
 }
 
-void FillLayer::parsePaints(const JSVal& layer) {
+void FillLayer::parsePaints(const JSValue& layer) {
     paint.antialias.parse("fill-antialias", layer);
     paint.opacity.parse("fill-opacity", layer);
     paint.color.parse("fill-color", layer);
@@ -67,4 +64,4 @@ std::unique_ptr<Bucket> FillLayer::createBucket(StyleBucketParameters& parameter
     return std::move(bucket);
 }
 
-}
+} // namespace mbgl
